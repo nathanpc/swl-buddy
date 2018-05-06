@@ -4,6 +4,7 @@ import sqlite3
 import urllib.request
 import csv
 import re
+import filecmp
 
 # Parses the EIBI CSV schedule row.
 def parse_schedule(row):
@@ -67,25 +68,41 @@ if __name__ == "__main__":
 		db.commit()
 
 		# Grabbing the latest schedule.
-		eibi_season = input("What is the EIBI season code of the schedule you wish to download (ie A18)? ")
-		eibi_url = "http://eibispace.de/dx/sked-" + eibi_season.lower() + ".csv"
+		eibi_season = input("What is the EIBI season code of the schedule you wish to download (ie A18)? ").lower()
+		eibi_url = "http://eibispace.de/dx/sked-" + eibi_season + ".csv"
 		print("Fetching database from " + eibi_url)
 
-		with urllib.request.urlopen(eibi_url) as csv_file:
-			# Open the CSV database. Remember that it is actually separated by semi-colons.
-			reader = csv.reader(io.TextIOWrapper(csv_file), delimiter = ";", skipinitialspace = True)
+		# Fetch database and save to archive.
+		urllib.request.urlretrieve(eibi_url, "archive/sked-" + eibi_season + ".csv")
 
-			# Skip the header of the CSV.
-			next(reader)
+		# Open the CSV database. Remember that it is actually separated by semi-colons.
+		reader = csv.reader(open("archive/sked-" + eibi_season + ".csv", newline = ""), delimiter = ";", skipinitialspace = True)
 
-			# Parse each row and put it in the database.
-			for row in reader:
-				schedule = parse_schedule(row)
-				print("Adding schedule for " + schedule["name"])
-				sql.execute("INSERT INTO schedule(freq, tstart, tstop, days, home, name, lang, target, txsite, persistence, stdate, spdate) VALUES(:freq, :tstart, :tstop, :days, :home, :name, :lang, :target, :txsite, :persistence, :stdate, :spdate)", schedule)
+		# Skip the header of the CSV.
+		next(reader)
 
-			# Commit all my inserts!
-			db.commit()
+		# Parse each row and put it in the database.
+		for row in reader:
+			schedule = parse_schedule(row)
+			print("Adding schedule for " + schedule["name"])
+			sql.execute("INSERT INTO schedule(freq, tstart, tstop, days, home, name, lang, target, txsite, persistence, stdate, spdate) VALUES(:freq, :tstart, :tstop, :days, :home, :name, :lang, :target, :txsite, :persistence, :stdate, :spdate)", schedule)
+
+		# Commit all my inserts!
+		db.commit()
+
+		# Download the EIBI README file.
+		print("Downloading README.txt...")
+		urllib.request.urlretrieve("http://eibispace.de/dx/README.TXT", "archive/README-" + eibi_season + ".txt")
+
+		# Check if the downloaded README.txt and the previous one are the same.
+		if filecmp.cmp("archive/README.txt", "archive/README-" + eibi_season + ".txt"):
+			print("Parsing the languages definitions.")
+		else:
+			print("================================================================")
+			print("= There is a new version of the EIBI README.TXT, please update =")
+			print("= the LANGUAGES.TXT, COUNTRIES.TXT, TARGET_AREAS.TXT and TRANS =")
+			print("= MITTERS.TXT files.                                           =")
+			print("================================================================")
 	except Exception as e:
 		# Rollback changes if some shit went down.
 		db.rollback()

@@ -7,7 +7,7 @@ bc-*.txt
 freq-*.txt
 eibi.txt
 eibi-*.zip
-README.TXT
+README-*.TXT
 
 # Misc.
 .DS_Store
