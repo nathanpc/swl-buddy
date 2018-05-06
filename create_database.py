@@ -81,7 +81,11 @@ if __name__ == "__main__":
 			# Parse each row and put it in the database.
 			for row in reader:
 				schedule = parse_schedule(row)
-				print(schedule["days"])
+				print("Adding schedule for " + schedule["name"])
+				sql.execute("INSERT INTO schedule(freq, tstart, tstop, days, home, name, lang, target, txsite, persistence, stdate, spdate) VALUES(:freq, :tstart, :tstop, :days, :home, :name, :lang, :target, :txsite, :persistence, :stdate, :spdate)", schedule)
+
+			# Commit all my inserts!
+			db.commit()
 	except Exception as e:
 		# Rollback changes if some shit went down.
 		db.rollback()
