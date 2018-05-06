@@ -1,0 +1,10 @@
+# EIBI stuff.
+sked-*.csv
+bc-*.txt
+freq-*.txt
+eibi.txt
+eibi-*.zip
+README.TXT
+
+# Misc.
+.DS_Store
