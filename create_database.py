@@ -98,6 +98,21 @@ def parse_language_def():
 
 	return langs
 
+# Parses the country definition file.
+def parse_countries_def():
+	countries = []
+
+	with open("archive/COUNTRIES.TXT", "r") as f:
+		for line in f:
+			data = re.match(r"^(\w{1,3})\s+(.+)", line)
+			if data:
+				countries.append({
+					"code": data.group(1),
+					"name": data.group(2).strip()
+				})
+
+	return countries
+
 # Main program.
 if __name__ == "__main__":
 	try:
@@ -166,6 +181,21 @@ if __name__ == "__main__":
 			for lang in langs:
 				print("Adding language: " + lang["name"])
 				sql.execute("INSERT INTO language(code, name, info, itu) VALUES(:code, :name, :info, :itu)", lang)
+			db.commit()
+
+			# Dealing with the country definitions.
+			print("Cleaning the countries table.")
+			sql.execute("DROP TABLE IF EXISTS country")
+			print("Creating new countries table.")
+			sql.execute("CREATE TABLE country(id INTEGER PRIMARY KEY, code TEXT, name TEXT)")
+			db.commit()
+
+			print("Parsing the country definitions...")
+			countries = parse_countries_def()
+
+			for country in countries:
+				print("Adding country: " + country["name"])
+				sql.execute("INSERT INTO country(code, name) VALUES(:code, :name)", country)
 			db.commit()
 
 			# TODO: Parse transmitter sites.
