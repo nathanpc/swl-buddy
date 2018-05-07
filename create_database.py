@@ -98,14 +98,8 @@ def parse_language_def():
 
 	return langs
 
-i = 1
-for lang in parse_language_def():
-	print(str(i) + ":")
-	pprint.pprint(lang)
-	i += 1
-
 # Main program.
-if False:#__name__ == "__main__":
+if __name__ == "__main__":
 	try:
 		# Open the database and get a cursor.
 		print("Opening database: schedule.db")
@@ -159,7 +153,20 @@ if False:#__name__ == "__main__":
 
 		# Check if the downloaded README.txt and the previous one are the same.
 		if filecmp.cmp("archive/README.txt", "archive/README-" + eibi_season + ".txt"):
-			print("Parsing the languages definitions.")
+			# Dealing with the language definitions.
+			print("Cleaning the languages table.")
+			sql.execute("DROP TABLE IF EXISTS language")
+			print("Creating new languages table.")
+			sql.execute("CREATE TABLE language(id INTEGER PRIMARY KEY, code TEXT, name TEXT, info TEXT, itu TEXT)")
+			db.commit()
+
+			print("Parsing the languages definitions...")
+			langs = parse_language_def()
+
+			for lang in langs:
+				print("Adding language: " + lang["name"])
+				sql.execute("INSERT INTO language(code, name, info, itu) VALUES(:code, :name, :info, :itu)", lang)
+			db.commit()
 
 			# TODO: Parse transmitter sites.
 			# TX site regex: /^(\w\w?)-(.*)\s([0-9][\w\d\'\"]+)?-?([0-9][\w\d\'\"]+)?/g
