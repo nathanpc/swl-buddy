@@ -113,6 +113,21 @@ def parse_countries_def():
 
 	return countries
 
+# Parses the target areas definition file.
+def parse_targets_def():
+	targets = []
+
+	with open("archive/TARGET_AREAS.TXT", "r") as f:
+		for line in f:
+			data = re.match(r"^([\w\.]{1,3})\s+-\s(.+)", line)
+			if data:
+				targets.append({
+					"code": data.group(1),
+					"name": data.group(2).strip()
+				})
+
+	return targets
+
 # Main program.
 if __name__ == "__main__":
 	try:
@@ -196,6 +211,21 @@ if __name__ == "__main__":
 			for country in countries:
 				print("Adding country: " + country["name"])
 				sql.execute("INSERT INTO country(code, name) VALUES(:code, :name)", country)
+			db.commit()
+
+			# Dealing with the target area definitions.
+			print("Cleaning the target area table.")
+			sql.execute("DROP TABLE IF EXISTS target")
+			print("Creating new target area table.")
+			sql.execute("CREATE TABLE target(id INTEGER PRIMARY KEY, code TEXT, name TEXT)")
+			db.commit()
+
+			print("Parsing the target area definitions...")
+			targets = parse_targets_def()
+
+			for target in targets:
+				print("Adding target area: " + target["name"])
+				sql.execute("INSERT INTO target(code, name) VALUES(:code, :name)", target)
 			db.commit()
 
 			# TODO: Parse transmitter sites.
