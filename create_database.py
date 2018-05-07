@@ -5,6 +5,7 @@ import urllib.request
 import csv
 import re
 import filecmp
+import pprint
 
 # Parses the EIBI CSV schedule row.
 def parse_schedule(row):
@@ -41,8 +42,70 @@ def parse_schedule(row):
 
 	return schedule
 
+# Parses the language definition file.
+def parse_language_def():
+	langs = []
+
+	with open("archive/LANGUAGES.TXT", "r") as f:
+		for line in f:
+			# Ignore the lines that start with a tab. They are just "see also" crap.
+			if line[0] is "\t":
+				continue
+
+			# Check if it is a "non-language".
+			if line[0] is "-":
+				data = re.match(r"^(-\w+)\s+(.+)", line)
+				langs.append({
+					"code": data.group(1),
+					"name": data.group(2),
+					"info": "",
+					"itu": ""
+				})
+				continue
+
+			# Try to match the more general of definitions.
+			data = re.match(r"^([\w-]{1,3})\s+(.+):\s(.+)\s+\[([\w,]+)\]", line)
+			if data:
+				langs.append({
+					"code": data.group(1),
+					"name": data.group(2),
+					"info": data.group(3).strip(),
+					"itu": data.group(4)
+				})
+				continue
+
+			# Try to match the complete lines without the info field.
+			data = re.match(r"^([\w-]{1,3})\s+(.+)\s+\[([\w,]+)\]", line)
+			if data:
+				langs.append({
+					"code": data.group(1),
+					"name": data.group(2),
+					"info": "",
+					"itu": data.group(3)
+				})
+				continue
+
+			# The last kind, which is just the code and the name.
+			data = re.match(r"^([\w-]{1,3})\s+(.+)", line)
+			if data:
+				langs.append({
+					"code": data.group(1),
+					"name": data.group(2),
+					"info": "",
+					"itu": ""
+				})
+				continue
+
+	return langs
+
+i = 1
+for lang in parse_language_def():
+	print(str(i) + ":")
+	pprint.pprint(lang)
+	i += 1
+
 # Main program.
-if __name__ == "__main__":
+if False:#__name__ == "__main__":
 	try:
 		# Open the database and get a cursor.
 		print("Opening database: schedule.db")
@@ -97,6 +160,10 @@ if __name__ == "__main__":
 		# Check if the downloaded README.txt and the previous one are the same.
 		if filecmp.cmp("archive/README.txt", "archive/README-" + eibi_season + ".txt"):
 			print("Parsing the languages definitions.")
+
+			# TODO: Parse transmitter sites.
+			# TX site regex: /^(\w\w?)-(.*)\s([0-9][\w\d\'\"]+)?-?([0-9][\w\d\'\"]+)?/g
+			# TODO: Recreate the regex above for lines like this: F:   Issoudun 46N56-01E54 except:
 		else:
 			print("================================================================")
 			print("= There is a new version of the EIBI README.TXT, please update =")
